@@ -1,49 +1,20 @@
 (function () {
-  const QTYPE_LABELS = { tossup: 'Toss-Up', bonus: 'Bonus' };
+  const QTYPE_LABELS = { tossup: 'Tossup', bonus: 'Bonus' };
   const FORMAT_LABELS = { SA: 'Short Answer', MC: 'Multiple Choice' };
-  const DIFF_LABELS = { RR: 'Round Robin', DE: 'Double Elim.', Unknown: 'Unlabeled round' };
   const TOSSUP_BUZZ_MS = 4000;
   const BONUS_BUZZ_MS = 20000;
   const ANSWER_MS = 10000;
+  const LETTERS = ['W', 'X', 'Y', 'Z'];
 
-  const filterState = {
-    subjects: new Set(),
-    difficulties: new Set(),
-    qtypes: new Set(),
-    formats: new Set(),
-    tournament: '',
-    bookmarkedOnly: false,
-  };
-
-  const session = {
-    queue: [],
-    index: -1,
-    score: 0,
-    correct: 0,
-    incorrect: 0,
-    skipped: 0,
-  };
-
-  const runtime = {
-    phase: null, // 'reading' | 'buzzwindow' | 'answering' | 'revealed'
-    speechCtl: null,
-    timer: null,
-    remainingMs: 0,
-    totalMs: 0,
-    paused: false,
-    buzzedDuringReading: false,
-    graded: null, // {correct, matched} after grading
-    manuallyOverridden: false,
-  };
-
-  let subjectItems, difficultyItems, qtypeItems, formatItems;
+  const filterState = { subjects: new Set(), rounds: new Set(), qtypes: new Set(), formats: new Set(), tournament: '' };
+  let subjectItems, roundItems, qtypeItems, formatItems;
 
   function buildChips(container, items, key, labelFn) {
     container.innerHTML = '';
     items.forEach((item) => {
       const chip = document.createElement('div');
       chip.className = 'chip';
-      chip.dataset.subject = item.subjectAttr || '';
+      if (item.subjectAttr) chip.dataset.subject = item.subjectAttr;
       chip.textContent = labelFn(item);
       chip.addEventListener('click', () => {
         if (filterState[key].has(item.value)) filterState[key].delete(item.value);
@@ -52,32 +23,42 @@
         updateMatchCount();
       });
       container.appendChild(chip);
+      item._el = chip;
     });
-  }
-
-  function updateMatchCount() {
-    const matches = getFiltered();
-    document.getElementById('matchCount').textContent = `${matches.length.toLocaleString()} questions match your filters`;
   }
 
   function getFiltered() {
     return SBData.filterQuestions({
       subjects: filterState.subjects,
-      difficulties: filterState.difficulties,
+      rounds: filterState.rounds,
       qtypes: filterState.qtypes,
       formats: filterState.formats,
       tournaments: filterState.tournament ? [filterState.tournament] : null,
-      bookmarkedOnly: filterState.bookmarkedOnly,
+      bookmarkedOnly: document.getElementById('bookmarkedOnly').checked,
+      includeVisual: document.getElementById('includeVisual').checked,
     });
+  }
+
+  function updateMatchCount() {
+    document.getElementById('matchCount').textContent = `${getFiltered().length.toLocaleString()} questions match your filters`;
+  }
+
+  function updateBookmarkCount() {
+    const n = SBData.bookmarks.count();
+    document.getElementById('bmCount').textContent = n ? `★ ${n} bookmarked` : '';
   }
 
   function initSetup() {
     subjectItems = SBData.meta.subjects.map((s) => ({ value: s.key, label: s.label, subjectAttr: s.key }));
     buildChips(document.getElementById('subjectChips'), subjectItems, 'subjects', (i) => i.label);
-    difficultyItems = SBData.meta.difficulties.map((d) => ({ value: d, label: DIFF_LABELS[d] || d }));
-    buildChips(document.getElementById('difficultyChips'), difficultyItems, 'difficulties', (i) => i.label);
+
+    roundItems = (SBData.meta.rounds || []).map((r) => ({ value: r, label: 'Round ' + r }));
+    roundItems.push({ value: null, label: 'Unlabeled' });
+    buildChips(document.getElementById('roundChips'), roundItems, 'rounds', (i) => i.label);
+
     qtypeItems = SBData.meta.qtypes.map((q) => ({ value: q, label: QTYPE_LABELS[q] || q }));
     buildChips(document.getElementById('qtypeChips'), qtypeItems, 'qtypes', (i) => i.label);
+
     formatItems = SBData.meta.formats.map((f) => ({ value: f, label: FORMAT_LABELS[f] || f }));
     buildChips(document.getElementById('formatChips'), formatItems, 'formats', (i) => i.label);
 
@@ -90,74 +71,359 @@
     });
     tSelect.addEventListener('change', () => { filterState.tournament = tSelect.value; updateMatchCount(); });
 
-    document.getElementById('bookmarkedOnly').addEventListener('change', (e) => {
-      filterState.bookmarkedOnly = e.target.checked;
+    document.getElementById('bookmarkedOnly').addEventListener('change', updateMatchCount);
+    document.getElementById('includeVisual').addEventListener('change', updateMatchCount);
+
+    document.getElementById('selectAllBtn').addEventListener('click', () => {
+      [[subjectItems, 'subjects'], [roundItems, 'rounds'], [qtypeItems, 'qtypes'], [formatItems, 'formats']].forEach(([items, key]) => {
+        items.forEach((i) => { filterState[key].add(i.value); i._el.classList.add('active'); });
+      });
+      updateMatchCount();
+    });
+    document.getElementById('clearFiltersBtn').addEventListener('click', () => {
+      [[subjectItems, 'subjects'], [roundItems, 'rounds'], [qtypeItems, 'qtypes'], [formatItems, 'formats']].forEach(([items, key]) => {
+        filterState[key].clear();
+        items.forEach((i) => i._el.classList.remove('active'));
+      });
+      filterState.tournament = '';
+      tSelect.value = '';
+      document.getElementById('bookmarkedOnly').checked = false;
+      document.getElementById('includeVisual').checked = false;
       updateMatchCount();
     });
 
     const rateSlider = document.getElementById('rateSlider');
     const savedRate = parseFloat(localStorage.getItem('sb_rate') || '1');
-    rateSlider.value = savedRate;
-    document.getElementById('rateValue').textContent = savedRate.toFixed(1) + '×';
+    rateSlider.value = isNaN(savedRate) ? 1 : savedRate;
+    document.getElementById('rateValue').textContent = parseFloat(rateSlider.value).toFixed(1) + '×';
     rateSlider.addEventListener('input', () => {
       document.getElementById('rateValue').textContent = parseFloat(rateSlider.value).toFixed(1) + '×';
-      localStorage.setItem('sb_rate', rateSlider.value);
+      try { localStorage.setItem('sb_rate', rateSlider.value); } catch (e) {}
     });
 
-    if (!SBTTS.supported) document.getElementById('ttsWarning').style.display = 'block';
-
     document.getElementById('startBtn').addEventListener('click', startSession);
-    document.getElementById('bmCount').textContent = SBData.bookmarks.count() ? `★ ${SBData.bookmarks.count()} bookmarked` : '';
-
+    updateBookmarkCount();
     updateMatchCount();
   }
 
+  /* ================= GAME STATE ================= */
+  const session = {
+    queue: [], index: -1,
+    correct: 0, incorrect: 0, skipped: 0,
+    rate: 1,
+    log: [],
+  };
+  const runtime = {
+    phase: 'revealing', // revealing | buzzwindow | answering | reveal | done
+    revealCtl: null,
+    buzzedDuringReading: false,
+    lastOutcome: null,
+    timer: null, remainingMs: 0, totalMs: 0, timerKind: null, onExpire: null,
+    paused: false,
+    pausedTimerRemaining: null,
+  };
+
   function startSession() {
     let pool = getFiltered();
-    if (!pool.length) {
-      alert('No questions match your filters. Widen your filters and try again.');
-      return;
-    }
-    const order = document.getElementById('orderMode').value;
-    if (order === 'shuffle') pool = SBData.shuffle(pool);
-    const limit = parseInt(document.getElementById('sessionLength').value, 10);
-    pool = pool.slice(0, limit);
+    if (!pool.length) { alert('No questions match your filters.'); return; }
+    pool = SBData.shuffle(pool);
 
     session.queue = pool;
     session.index = -1;
-    session.score = 0;
-    session.correct = 0;
-    session.incorrect = 0;
-    session.skipped = 0;
+    session.correct = 0; session.incorrect = 0; session.skipped = 0;
+    session.rate = parseFloat(document.getElementById('rateSlider').value) || 1;
+    session.log = [];
 
     document.getElementById('setupScreen').style.display = 'none';
-    document.getElementById('summaryScreen').style.display = 'none';
     document.getElementById('gameScreen').style.display = 'block';
-
+    document.getElementById('questionLog').innerHTML = '';
+    updateCounters();
     nextQuestion();
   }
 
-  function currentQuestion() {
-    return session.queue[session.index];
+  function updateCounters() {
+    document.getElementById('correctCount').textContent = session.correct;
+    document.getElementById('incorrectCount').textContent = session.incorrect;
+    document.getElementById('skippedCount').textContent = session.skipped;
   }
 
-  function updateScoreBar() {
-    const el = document.getElementById('scoreDisplay');
-    el.textContent = (session.score > 0 ? '+' : '') + session.score;
-    el.className = 'score ' + (session.score > 0 ? 'pos' : session.score < 0 ? 'neg' : '');
-    document.getElementById('progressDisplay').textContent =
-      `Question ${session.index + 1} of ${session.queue.length} · ${session.correct} correct · ${session.incorrect} incorrect · ${session.skipped} skipped`;
+  function currentQ() { return session.queue[session.index]; }
+
+  function nextQuestion() {
+    clearRuntimeTimer();
+    if (runtime.revealCtl) runtime.revealCtl.stop();
+    runtime.paused = false;
+    document.getElementById('pauseBadge').style.display = 'none';
+    document.getElementById('pauseBtn').textContent = 'Pause (P)';
+
+    session.index++;
+    if (session.index >= session.queue.length) {
+      showSessionDone();
+      return;
+    }
+    const q = currentQ();
+    runtime.phase = 'revealing';
+    runtime.buzzedDuringReading = false;
+    runtime.lastOutcome = null;
+
+    document.getElementById('progressDisplay').textContent = `Question ${session.index + 1} of ${session.queue.length}`;
+    renderMeta(q);
+    setPill('Revealing…', 'live');
+    document.getElementById('revealBox').style.display = 'none';
+    document.getElementById('answerRow').style.display = 'none';
+    document.getElementById('overrideBtn').style.display = 'none';
+    hideTimer();
+    setNextButtonMode('skip');
+    updateBookmarkBtn();
+    document.querySelectorAll('#choicesDisplay .choice-box').forEach((el) => {
+      el.classList.remove('reveal-correct');
+      el.classList.remove('clickable');
+    });
+
+    const buzzBtn = document.getElementById('buzzBtn');
+    buzzBtn.style.display = 'inline-flex';
+
+    const qDisplay = document.getElementById('qDisplay');
+    const tagLine = `${QTYPE_LABELS[q.qtype] || q.qtype}, ${labelFor(q.subject)}`.toUpperCase();
+    const segments = [{ text: tagLine + '\n\n' + q.question, el: qDisplay }];
+    const choicesDisplay = document.getElementById('choicesDisplay');
+    if (q.choices) {
+      choicesDisplay.style.display = 'grid';
+      LETTERS.forEach((L) => {
+        segments.push({ text: q.choices[L] || '', el: document.getElementById('choiceText' + L) });
+      });
+    } else {
+      choicesDisplay.style.display = 'none';
+    }
+
+    runtime.revealCtl = SBReveal.startReveal(segments, session.rate, {
+      onComplete: () => { startBuzzWindow(); },
+    });
   }
 
-  function renderMetaStrip(q) {
-    const el = document.getElementById('metaStrip');
-    el.innerHTML = `
+  function startBuzzWindow() {
+    if (runtime.phase === 'answering' || runtime.phase === 'reveal') return;
+    runtime.phase = 'buzzwindow';
+    setPill('Buzz in!', 'live');
+    const q = currentQ();
+    const ms = q.qtype === 'bonus' ? BONUS_BUZZ_MS : TOSSUP_BUZZ_MS;
+    runTimer(ms, 'buzz', () => { resolveQuestion({ attempted: false }); });
+  }
+
+  function buzzIn() {
+    if (runtime.phase !== 'revealing' && runtime.phase !== 'buzzwindow') return;
+    if (runtime.paused) return;
+    runtime.buzzedDuringReading = runtime.phase === 'revealing';
+    if (runtime.revealCtl) runtime.revealCtl.stop();
+    clearRuntimeTimer();
+    runtime.phase = 'answering';
+    setPill('Your turn — type your answer!', 'buzzed');
+    document.getElementById('buzzBtn').style.display = 'none';
+    setNextButtonMode('hidden');
+    const answerRow = document.getElementById('answerRow');
+    answerRow.style.display = 'flex';
+    const input = document.getElementById('answerInput');
+    input.value = '';
+    input.focus();
+
+    const q = currentQ();
+    if (q.format === 'MC' && q.choices) {
+      document.querySelectorAll('#choicesDisplay .choice-box').forEach((el) => el.classList.add('clickable'));
+    }
+    runTimer(ANSWER_MS, 'answer', () => submitAnswer(''));
+  }
+
+  function submitAnswer(text) {
+    if (runtime.phase !== 'answering') return;
+    clearRuntimeTimer();
+    const q = currentQ();
+    const result = text.trim() ? SBAnswer.checkAnswer(q, text) : { correct: false };
+    resolveQuestion({ attempted: true, correct: result.correct });
+  }
+
+  function resolveQuestion(outcome) {
+    clearRuntimeTimer();
+    if (runtime.revealCtl) runtime.revealCtl.skipToEnd();
+    runtime.phase = 'reveal';
+    runtime.lastOutcome = outcome;
+
+    let category;
+    if (!outcome.attempted) { category = 'skipped'; session.skipped++; }
+    else if (outcome.correct) { category = 'correct'; session.correct++; }
+    else { category = 'incorrect'; session.incorrect++; }
+    updateCounters();
+
+    const q = currentQ();
+    session.log.push({ id: q.id, subject: q.subject, qtype: q.qtype, category });
+    renderQuestionLog();
+
+    setPill(outcome.attempted ? (outcome.correct ? 'Correct' : 'Incorrect') : 'Skipped', outcome.attempted ? (outcome.correct ? 'correct' : 'incorrect') : 'revealed');
+    document.getElementById('buzzBtn').style.display = 'none';
+    document.getElementById('answerRow').style.display = 'none';
+    document.getElementById('overrideBtn').style.display = outcome.attempted ? 'inline-flex' : 'none';
+    hideTimer();
+    setNextButtonMode('next');
+    showReveal();
+  }
+
+  function showReveal() {
+    const q = currentQ();
+    const box = document.getElementById('revealBox');
+    let html = `<div class="ans-line">Answer: ${escapeHtml(q.answer.text)}${q.answer.letter ? ' (' + q.answer.letter + ')' : ''}</div>`;
+    if (q.answer.accept.length) html += `<div class="alt-line">Also accept: ${escapeHtml(q.answer.accept.join('; '))}</div>`;
+    if (q.answer.reject.length) html += `<div class="alt-line">Do not accept: ${escapeHtml(q.answer.reject.join('; '))}</div>`;
+    html += `<div class="src-line">${escapeHtml(q.tournament)}${q.roundLabel ? ' · ' + escapeHtml(q.roundLabel) : ''}</div>`;
+    box.innerHTML = html;
+    box.style.display = 'block';
+    if (q.choices && q.answer.letter) {
+      const el = document.querySelector(`.choice-box[data-letter="${q.answer.letter}"]`);
+      if (el) el.classList.add('reveal-correct');
+    }
+    document.querySelectorAll('#choicesDisplay .choice-box').forEach((el) => el.classList.remove('clickable'));
+  }
+
+  function skipQuestion() {
+    if (runtime.phase !== 'revealing' && runtime.phase !== 'buzzwindow') return;
+    resolveQuestion({ attempted: false });
+  }
+
+  function overrideGrading() {
+    if (runtime.phase !== 'reveal' || !runtime.lastOutcome || !runtime.lastOutcome.attempted) return;
+    const wasCorrect = runtime.lastOutcome.correct;
+    if (wasCorrect) { session.correct--; session.incorrect++; }
+    else { session.incorrect--; session.correct++; }
+    runtime.lastOutcome.correct = !wasCorrect;
+    updateCounters();
+    setPill(runtime.lastOutcome.correct ? 'Correct' : 'Incorrect', runtime.lastOutcome.correct ? 'correct' : 'incorrect');
+    if (session.log.length) session.log[session.log.length - 1].category = runtime.lastOutcome.correct ? 'correct' : 'incorrect';
+    renderQuestionLog();
+  }
+
+  function toggleBookmark() {
+    const q = currentQ();
+    if (!q) return;
+    SBData.bookmarks.toggle(q.id);
+    updateBookmarkBtn();
+    updateBookmarkCount();
+  }
+  function updateBookmarkBtn() {
+    const q = currentQ();
+    const btn = document.getElementById('bookmarkBtn');
+    if (!q) return;
+    const isBm = SBData.bookmarks.isBookmarked(q.id);
+    btn.textContent = isBm ? '★' : '☆';
+    btn.classList.toggle('active', isBm);
+    btn.title = isBm ? 'Unbookmark (B)' : 'Bookmark (B)';
+  }
+
+  function setNextButtonMode(mode) {
+    const btn = document.getElementById('nextBtn');
+    if (mode === 'skip') { btn.style.display = 'inline-flex'; btn.textContent = 'Skip (N)'; btn.dataset.mode = 'skip'; }
+    else if (mode === 'next') { btn.style.display = 'inline-flex'; btn.textContent = 'Next question (N)'; btn.dataset.mode = 'next'; }
+    else { btn.style.display = 'none'; btn.dataset.mode = ''; }
+  }
+  function handleNextButton() {
+    const mode = document.getElementById('nextBtn').dataset.mode;
+    if (mode === 'skip') skipQuestion();
+    else if (mode === 'next') nextQuestion();
+  }
+
+  function renderMeta(q) {
+    const strip = document.getElementById('metaStrip');
+    strip.innerHTML = `
       <span class="tag subject-${q.subject}">${labelFor(q.subject)}</span>
       <span class="tag qtype-${q.qtype}">${QTYPE_LABELS[q.qtype] || q.qtype}</span>
       <span class="tag fmt">${FORMAT_LABELS[q.format] || q.format}</span>
-      <span class="tag diff-${q.difficulty}">${DIFF_LABELS[q.difficulty] || q.difficulty}</span>
+      <span class="tag round">${q.round ? 'Round ' + q.round : 'Round —'}</span>
       <span class="small-note">${escapeHtml(q.tournament)}${q.roundLabel ? ' · ' + escapeHtml(q.roundLabel) : ''}</span>
+      ${q.visual ? '<span class="tag visual-warn">⚠ Visual bonus — image not shown</span>' : ''}
     `;
+  }
+
+  function setPill(text, cls) {
+    const el = document.getElementById('statusPill');
+    el.textContent = text;
+    el.className = 'status-pill ' + (cls || '');
+  }
+
+  function runTimer(ms, kind, onExpire) {
+    clearRuntimeTimer();
+    runtime.totalMs = ms; runtime.remainingMs = ms; runtime.timerKind = kind; runtime.onExpire = onExpire;
+    renderTick(ms, ms, kind);
+    runtime.timer = setInterval(() => {
+      if (runtime.paused) return;
+      runtime.remainingMs -= 100;
+      if (runtime.remainingMs <= 0) {
+        renderTick(0, runtime.totalMs, kind);
+        clearInterval(runtime.timer); runtime.timer = null;
+        const fn = runtime.onExpire; runtime.onExpire = null;
+        if (fn) fn();
+        return;
+      }
+      renderTick(runtime.remainingMs, runtime.totalMs, kind);
+    }, 100);
+  }
+  function clearRuntimeTimer() {
+    if (runtime.timer) clearInterval(runtime.timer);
+    runtime.timer = null; runtime.onExpire = null;
+  }
+  function renderTick(remainingMs, totalMs, kind) {
+    const row = document.getElementById('timerRow');
+    row.style.display = 'flex';
+    const fill = document.getElementById('timerFill');
+    fill.className = 'timer-bar-fill' + (kind === 'answer' ? ' answer' : '');
+    fill.style.width = Math.max(0, (remainingMs / totalMs) * 100) + '%';
+    document.getElementById('timerLabel').textContent = (remainingMs / 1000).toFixed(1) + 's';
+  }
+  function hideTimer() { document.getElementById('timerRow').style.display = 'none'; }
+
+  function togglePause() {
+    if (runtime.phase === 'reveal' || runtime.phase === 'done') return;
+    runtime.paused = !runtime.paused;
+    document.getElementById('pauseBadge').style.display = runtime.paused ? 'inline-flex' : 'none';
+    document.getElementById('pauseBtn').textContent = runtime.paused ? 'Resume (P)' : 'Pause (P)';
+    if (runtime.revealCtl && runtime.phase === 'revealing') {
+      if (runtime.paused) runtime.revealCtl.pause(); else runtime.revealCtl.resume();
+    }
+    // the setInterval-based countdown timer already checks runtime.paused each tick
+  }
+
+  function renderQuestionLog() {
+    const el = document.getElementById('questionLog');
+    el.innerHTML = '';
+    session.log.forEach((entry) => {
+      const chip = document.createElement('div');
+      chip.className = 'q-log-chip ' + entry.category;
+      chip.title = `${labelFor(entry.subject)} · ${QTYPE_LABELS[entry.qtype] || entry.qtype} · ${entry.category}`;
+      el.appendChild(chip);
+    });
+  }
+
+  function showSessionDone() {
+    runtime.phase = 'done';
+    setPill('Session complete', 'revealed');
+    document.getElementById('qDisplay').textContent = '';
+    document.getElementById('choicesDisplay').style.display = 'none';
+    document.getElementById('buzzBtn').style.display = 'none';
+    document.getElementById('answerRow').style.display = 'none';
+    document.getElementById('overrideBtn').style.display = 'none';
+    hideTimer();
+    setNextButtonMode('hidden');
+    const box = document.getElementById('revealBox');
+    box.innerHTML = `
+      <div class="ans-line">You've gone through every question that matched your filters.</div>
+      <div class="alt-line">${session.correct} correct · ${session.incorrect} incorrect · ${session.skipped} skipped</div>
+      <div style="margin-top:14px; display:flex; gap:10px;">
+        <button class="btn primary" id="playAgainBtn">Practice again</button>
+        <a class="btn ghost" href="catalog.html">Browse catalog</a>
+      </div>
+    `;
+    box.style.display = 'block';
+    document.getElementById('playAgainBtn').addEventListener('click', () => {
+      document.getElementById('gameScreen').style.display = 'none';
+      document.getElementById('setupScreen').style.display = 'block';
+      updateMatchCount();
+    });
   }
 
   function labelFor(subjectKey) {
@@ -170,325 +436,47 @@
     return d.innerHTML;
   }
 
-  function setStatusPill(text, cls) {
-    const pill = document.getElementById('statusPill');
-    pill.textContent = text;
-    pill.className = 'status-pill ' + (cls || '');
-  }
-
-  function nextQuestion() {
-    clearTimerUI();
-    runtime.buzzedDuringReading = false;
-    runtime.graded = null;
-    runtime.manuallyOverridden = false;
-    document.getElementById('revealBox').style.display = 'none';
-    document.getElementById('answerRow').style.display = 'none';
-    document.getElementById('answerInput').value = '';
-    document.getElementById('overrideBtn').style.display = 'none';
-    document.getElementById('nextBtn').style.display = 'none';
-    document.getElementById('buzzBtn').style.display = 'inline-flex';
-    document.getElementById('skipBtn').style.display = 'inline-flex';
-
-    session.index++;
-    if (session.index >= session.queue.length) {
-      showSummary();
-      return;
-    }
-    updateScoreBar();
-    const q = currentQuestion();
-    renderMetaStrip(q);
-    updateBookmarkBtn(q);
-
-    document.getElementById('qDisplay').textContent = q.question;
-
-    if (q.choices) {
-      const cd = document.getElementById('choicesDisplay');
-      cd.style.display = 'grid';
-      cd.innerHTML = ['W', 'X', 'Y', 'Z'].map((L) =>
-        `<div class="choice-box" data-letter="${L}"><span class="letter">${L})</span>${escapeHtml(q.choices[L])}</div>`
-      ).join('');
-    } else {
-      document.getElementById('choicesDisplay').style.display = 'none';
-      document.getElementById('choicesDisplay').innerHTML = '';
-    }
-
-    startReading(q);
-  }
-
-  function startReading(q) {
-    runtime.phase = 'reading';
-    setStatusPill('🔊 Reading question…', 'live');
-    const rate = parseFloat(document.getElementById('rateSlider').value) || 1;
-    const text = SBTTS.questionToSpeech(q);
-    runtime.speechCtl = SBTTS.speak(text, rate, {
-      onEnd: () => {
-        if (runtime.phase === 'reading') startBuzzWindow(q);
-      },
-    });
-  }
-
-  function startBuzzWindow(q) {
-    runtime.phase = 'buzzwindow';
-    setStatusPill('⏱ Buzz window — buzz in now!', 'live');
-    const ms = q.qtype === 'bonus' ? BONUS_BUZZ_MS : TOSSUP_BUZZ_MS;
-    runTimer(ms, 'buzz', () => {
-      // timed out without buzzing: no attempt, no penalty
-      resolveQuestion({ attempted: false, correct: false, buzzedDuringReading: false, timedOut: true });
-    });
-  }
-
-  function buzzIn() {
-    if (runtime.phase !== 'reading' && runtime.phase !== 'buzzwindow') return;
-    runtime.buzzedDuringReading = runtime.phase === 'reading';
-    if (runtime.speechCtl) runtime.speechCtl.cancel();
-    clearTimerUI();
-    runtime.phase = 'answering';
-    setStatusPill('✍️ Answer now — you have 10s', 'buzzed');
-    document.getElementById('buzzBtn').style.display = 'none';
-    document.getElementById('answerRow').style.display = 'flex';
-    const input = document.getElementById('answerInput');
-    input.value = '';
-    input.focus();
-    runTimer(ANSWER_MS, 'answer', () => {
-      submitAnswer(''); // timeout = blank submission
-    });
-  }
-
-  function submitAnswer(text) {
-    if (runtime.phase !== 'answering') return;
-    clearTimerUI();
-    const q = currentQuestion();
-    const result = text.trim() ? SBAnswer.checkAnswer(q, text) : { correct: false, matched: null, rejected: false, empty: true };
-    resolveQuestion({
-      attempted: true,
-      correct: result.correct,
-      buzzedDuringReading: runtime.buzzedDuringReading,
-      userText: text,
-      matched: result.matched,
-    });
-  }
-
-  function resolveQuestion(outcome) {
-    runtime.phase = 'revealed';
-    document.getElementById('answerRow').style.display = 'none';
-    document.getElementById('buzzBtn').style.display = 'none';
-    document.getElementById('skipBtn').style.display = 'none';
-
-    let delta = 0;
-    let pillText, pillCls;
-    if (!outcome.attempted) {
-      pillText = '⌛ Time expired — no attempt'; pillCls = 'revealed';
-    } else if (outcome.correct) {
-      delta = 4; session.correct++;
-      pillText = '✅ Correct! +4'; pillCls = 'correct';
-    } else {
-      delta = outcome.buzzedDuringReading ? -4 : 0;
-      session.incorrect++;
-      pillText = outcome.buzzedDuringReading ? '❌ Incorrect (buzzed early) ' + delta : '❌ Incorrect (+0)';
-      pillCls = 'incorrect';
-    }
-    session.score += delta;
-    runtime.graded = { ...outcome, delta };
-    updateScoreBar();
-    setStatusPill(pillText, pillCls);
-    showReveal();
-    document.getElementById('overrideBtn').style.display = 'inline-flex';
-    document.getElementById('nextBtn').style.display = 'inline-flex';
-  }
-
-  function showReveal() {
-    const q = currentQuestion();
-    const box = document.getElementById('revealBox');
-    let html = `<div class="ans-line">Answer: ${escapeHtml(q.answer.text)}${q.answer.letter ? ' (' + q.answer.letter + ')' : ''}</div>`;
-    if (q.answer.accept.length) html += `<div class="alt-line">Also accept: ${escapeHtml(q.answer.accept.join('; '))}</div>`;
-    if (q.answer.reject.length) html += `<div class="alt-line">Do not accept: ${escapeHtml(q.answer.reject.join('; '))}</div>`;
-    if (runtime.graded && runtime.graded.userText !== undefined) {
-      html += `<div class="alt-line">You answered: “${escapeHtml(runtime.graded.userText || '(blank)')}”</div>`;
-    }
-    html += `<div class="src-line">${escapeHtml(q.tournament)}${q.roundLabel ? ' · ' + escapeHtml(q.roundLabel) : ''} · <a href="${q.sourceUrl}" target="_blank" rel="noopener">source packet</a></div>`;
-    box.innerHTML = html;
-    box.style.display = 'block';
-
-    if (q.choices && q.answer.letter) {
-      const el = document.querySelector(`.choice-box[data-letter="${q.answer.letter}"]`);
-      if (el) el.classList.add('reveal-correct');
-    }
-  }
-
-  function skipQuestion() {
-    if (runtime.phase === 'revealed') return;
-    if (runtime.speechCtl) runtime.speechCtl.cancel();
-    clearTimerUI();
-    session.skipped++;
-    resolveQuestion({ attempted: false, correct: false, buzzedDuringReading: false, skipped: true });
-    setStatusPill('⏭ Skipped', 'revealed');
-  }
-
-  function overrideGrading() {
-    if (!runtime.graded) return;
-    // flip correctness and adjust score
-    const wasCorrect = runtime.graded.correct === true;
-    const nowCorrect = !wasCorrect;
-    // undo previous delta & counts
-    session.score -= runtime.graded.delta;
-    if (runtime.graded.attempted) {
-      if (wasCorrect) session.correct--; else session.incorrect--;
-    }
-    let delta = 0;
-    if (nowCorrect) {
-      delta = 4; session.correct++;
-    } else {
-      delta = runtime.graded.buzzedDuringReading ? -4 : 0;
-      session.incorrect++;
-    }
-    runtime.graded.correct = nowCorrect;
-    runtime.graded.attempted = true;
-    runtime.graded.delta = delta;
-    session.score += delta;
-    runtime.manuallyOverridden = true;
-    updateScoreBar();
-    setStatusPill(nowCorrect ? '✅ Marked correct (override) ' + (delta>=0?'+':'') + delta : '❌ Marked incorrect (override) ' + delta, nowCorrect ? 'correct' : 'incorrect');
-  }
-
-  function updateBookmarkBtn(q) {
-    const btn = document.getElementById('bookmarkBtn');
-    btn.textContent = SBData.bookmarks.isBookmarked(q.id) ? '★ Bookmarked (B)' : '☆ Bookmark (B)';
-  }
-  function toggleBookmark() {
-    const q = currentQuestion();
-    if (!q) return;
-    const now = SBData.bookmarks.toggle(q.id);
-    updateBookmarkBtn(q);
-    document.getElementById('bmCount').textContent = SBData.bookmarks.count() ? `★ ${SBData.bookmarks.count()} bookmarked` : '';
-  }
-
-  /* ---------------- timer plumbing ---------------- */
-  function runTimer(ms, kind, onExpire) {
-    runtime.totalMs = ms;
-    runtime.remainingMs = ms;
-    runtime.timerKind = kind;
-    runtime.onExpire = onExpire;
-    document.getElementById('timerRow').style.display = 'flex';
-    const fill = document.getElementById('timerFill');
-    fill.className = 'timer-bar-fill' + (kind === 'answer' ? ' answer' : '');
-    tickTimerUI();
-    clearInterval(runtime.timer);
-    runtime.timer = setInterval(() => {
-      if (runtime.paused) return;
-      runtime.remainingMs -= 100;
-      if (runtime.remainingMs <= 0) {
-        runtime.remainingMs = 0;
-        tickTimerUI();
-        clearInterval(runtime.timer);
-        runtime.timer = null;
-        const fn = runtime.onExpire;
-        runtime.onExpire = null;
-        if (fn) fn();
-        return;
-      }
-      tickTimerUI();
-    }, 100);
-  }
-  function tickTimerUI() {
-    const pct = Math.max(0, (runtime.remainingMs / runtime.totalMs) * 100);
-    document.getElementById('timerFill').style.width = pct + '%';
-    document.getElementById('timerLabel').textContent = (runtime.remainingMs / 1000).toFixed(1) + 's';
-  }
-  function clearTimerUI() {
-    if (runtime.timer) clearInterval(runtime.timer);
-    runtime.timer = null;
-    runtime.onExpire = null;
-    document.getElementById('timerRow').style.display = 'none';
-  }
-
-  /* ---------------- pause ---------------- */
-  function togglePause() {
-    if (runtime.paused) resumeGame(); else pauseGame();
-  }
-  function pauseGame() {
-    if (runtime.paused) return;
-    if (runtime.phase === 'revealed' || !session.queue.length || session.index >= session.queue.length) return;
-    runtime.paused = true;
-    if (runtime.phase === 'reading') SBTTS.pause();
-    document.getElementById('pauseOverlay').style.display = 'flex';
-  }
-  function resumeGame() {
-    if (!runtime.paused) return;
-    runtime.paused = false;
-    if (runtime.phase === 'reading') SBTTS.resume();
-    document.getElementById('pauseOverlay').style.display = 'none';
-  }
-
-  function showSummary() {
-    document.getElementById('gameScreen').style.display = 'none';
-    document.getElementById('summaryScreen').style.display = 'block';
-    const el = document.getElementById('summaryStats');
-    const attempted = session.correct + session.incorrect;
-    const acc = attempted ? Math.round((session.correct / attempted) * 100) : 0;
-    el.innerHTML = `
-      <div class="summary-stat"><div class="n">${session.score}</div><div class="l">Score</div></div>
-      <div class="summary-stat"><div class="n">${session.correct}</div><div class="l">Correct</div></div>
-      <div class="summary-stat"><div class="n">${session.incorrect}</div><div class="l">Incorrect</div></div>
-      <div class="summary-stat"><div class="n">${session.skipped}</div><div class="l">Skipped</div></div>
-      <div class="summary-stat"><div class="n">${acc}%</div><div class="l">Accuracy</div></div>
-    `;
-  }
-
-  function endSession() {
-    if (runtime.speechCtl) runtime.speechCtl.cancel();
-    clearTimerUI();
-    showSummary();
-  }
-
-  /* ---------------- wiring ---------------- */
-  function wireEvents() {
+  function wireGameControls() {
     document.getElementById('buzzBtn').addEventListener('click', buzzIn);
-    document.getElementById('skipBtn').addEventListener('click', skipQuestion);
-    document.getElementById('bookmarkBtn').addEventListener('click', toggleBookmark);
+    document.getElementById('nextBtn').addEventListener('click', handleNextButton);
     document.getElementById('overrideBtn').addEventListener('click', overrideGrading);
-    document.getElementById('nextBtn').addEventListener('click', nextQuestion);
+    document.getElementById('bookmarkBtn').addEventListener('click', toggleBookmark);
     document.getElementById('pauseBtn').addEventListener('click', togglePause);
-    document.getElementById('resumeBtn').addEventListener('click', resumeGame);
-    document.getElementById('endSessionBtn').addEventListener('click', endSession);
-    document.getElementById('playAgainBtn').addEventListener('click', () => {
-      document.getElementById('summaryScreen').style.display = 'none';
-      document.getElementById('setupScreen').style.display = 'block';
-      updateMatchCount();
-    });
-    document.getElementById('submitAnswerBtn').addEventListener('click', () => {
-      submitAnswer(document.getElementById('answerInput').value);
-    });
-    document.getElementById('answerInput').addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        submitAnswer(document.getElementById('answerInput').value);
+    document.getElementById('endSessionBtn').addEventListener('click', () => {
+      if (confirm('End this practice session?')) {
+        clearRuntimeTimer();
+        if (runtime.revealCtl) runtime.revealCtl.stop();
+        document.getElementById('gameScreen').style.display = 'none';
+        document.getElementById('setupScreen').style.display = 'block';
+        updateMatchCount();
       }
+    });
+    document.getElementById('submitAnswerBtn').addEventListener('click', () => submitAnswer(document.getElementById('answerInput').value));
+    document.getElementById('answerInput').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); submitAnswer(document.getElementById('answerInput').value); }
+    });
+    document.querySelectorAll('#choicesDisplay .choice-box').forEach((el) => {
+      el.addEventListener('click', () => {
+        if (!el.classList.contains('clickable')) return;
+        submitAnswer(el.dataset.letter);
+      });
     });
 
     document.addEventListener('keydown', (e) => {
-      const tag = (e.target && e.target.tagName) || '';
-      const typing = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
       if (document.getElementById('gameScreen').style.display === 'none') return;
-
-      if (e.code === 'Space' && !typing) {
-        e.preventDefault();
-        if (!runtime.paused) buzzIn();
-        return;
-      }
-      if (typing) return; // let the rest fall through to native input behavior
-
-      if (e.key === 'p' || e.key === 'P') { togglePause(); return; }
-      if (runtime.paused) return;
-      if (e.key === 'n' || e.key === 'N') { if (runtime.phase === 'revealed') nextQuestion(); return; }
-      if (e.key === 's' || e.key === 'S') { skipQuestion(); return; }
+      const tag = (e.target && e.target.tagName) || '';
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+      if (e.code === 'Space') { e.preventDefault(); buzzIn(); return; }
+      if (e.key === 'n' || e.key === 'N') { handleNextButton(); return; }
+      if (e.key === 'q' || e.key === 'Q') { overrideGrading(); return; }
       if (e.key === 'b' || e.key === 'B') { toggleBookmark(); return; }
-      if (e.key === 'q' || e.key === 'Q') { if (runtime.phase === 'revealed') overrideGrading(); return; }
+      if (e.key === 'p' || e.key === 'P') { togglePause(); return; }
     });
   }
 
   SBData.load().then(() => {
     initSetup();
-    wireEvents();
+    wireGameControls();
   }).catch((err) => {
     document.getElementById('setupScreen').innerHTML = '<p>Failed to load question data: ' + err.message + '</p>';
   });

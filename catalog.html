@@ -33,8 +33,8 @@
         <div class="chip-row" id="subjectChips"></div>
       </div>
       <div>
-        <span class="field-label">Difficulty</span>
-        <div class="chip-row" id="difficultyChips"></div>
+        <span class="field-label">Round</span>
+        <div class="chip-row" id="roundChips"></div>
       </div>
       <div>
         <span class="field-label">Question type</span>
@@ -59,7 +59,8 @@
           <input type="checkbox" id="bookmarkedOnly" /> Show bookmarked only
         </label>
       </div>
-      <div style="align-self: end;">
+      <div style="align-self: end; display:flex; gap:8px;">
+        <button class="btn ghost" id="selectAllFilters">Select all</button>
         <button class="btn ghost" id="clearFilters">Clear all filters</button>
       </div>
     </div>

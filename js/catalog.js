@@ -2,7 +2,7 @@
   const PAGE_SIZE = 40;
   const state = {
     subjects: new Set(),
-    difficulties: new Set(),
+    rounds: new Set(),
     qtypes: new Set(),
     formats: new Set(),
     tournament: '',
@@ -13,7 +13,6 @@
 
   const QTYPE_LABELS = { tossup: 'Toss-Up', bonus: 'Bonus' };
   const FORMAT_LABELS = { SA: 'Short Answer', MC: 'Multiple Choice' };
-  const DIFF_LABELS = { RR: 'Round Robin', DE: 'Double Elim.', Unknown: 'Unlabeled' };
 
   function buildChips(container, items, key, labelFn) {
     container.innerHTML = '';
@@ -33,15 +32,16 @@
     });
   }
 
-  let subjectItems, difficultyItems, qtypeItems, formatItems;
+  let subjectItems, roundItems, qtypeItems, formatItems;
 
   function init() {
     SBData.load().then(() => {
       subjectItems = SBData.meta.subjects.map((s) => ({ value: s.key, label: s.label, subjectAttr: s.key }));
       buildChips(document.getElementById('subjectChips'), subjectItems, 'subjects', (i) => i.label);
 
-      difficultyItems = SBData.meta.difficulties.map((d) => ({ value: d, label: DIFF_LABELS[d] || d }));
-      buildChips(document.getElementById('difficultyChips'), difficultyItems, 'difficulties', (i) => i.label);
+      roundItems = (SBData.meta.rounds || []).map((r) => ({ value: r, label: 'Round ' + r }));
+      roundItems.push({ value: null, label: 'Unlabeled' });
+      buildChips(document.getElementById('roundChips'), roundItems, 'rounds', (i) => i.label);
 
       qtypeItems = SBData.meta.qtypes.map((q) => ({ value: q, label: QTYPE_LABELS[q] || q }));
       buildChips(document.getElementById('qtypeChips'), qtypeItems, 'qtypes', (i) => i.label);
@@ -76,7 +76,7 @@
 
       document.getElementById('clearFilters').addEventListener('click', () => {
         state.subjects.clear();
-        state.difficulties.clear();
+        state.rounds.clear();
         state.qtypes.clear();
         state.formats.clear();
         state.tournament = '';
@@ -86,6 +86,14 @@
         document.getElementById('searchBox').value = '';
         document.getElementById('bookmarkedOnly').checked = false;
         document.getElementById('tournamentSelect').value = '';
+        render();
+      });
+
+      document.getElementById('selectAllFilters').addEventListener('click', () => {
+        [[subjectItems, 'subjects'], [roundItems, 'rounds'], [qtypeItems, 'qtypes'], [formatItems, 'formats']].forEach(([items, key]) => {
+          items.forEach((i) => state[key].add(i.value));
+        });
+        state.page = 1;
         render();
       });
 
@@ -112,7 +120,7 @@
   function syncChipVisuals() {
     [
       [subjectItems, state.subjects],
-      [difficultyItems, state.difficulties],
+      [roundItems, state.rounds],
       [qtypeItems, state.qtypes],
       [formatItems, state.formats],
     ].forEach(([items, set]) => {
@@ -124,12 +132,13 @@
     syncChipVisuals();
     const filtered = SBData.filterQuestions({
       subjects: state.subjects,
-      difficulties: state.difficulties,
+      rounds: state.rounds,
       qtypes: state.qtypes,
       formats: state.formats,
       tournaments: state.tournament ? [state.tournament] : null,
       bookmarkedOnly: state.bookmarkedOnly,
       search: state.search,
+      includeVisual: true,
     });
 
     document.getElementById('resultCount').textContent =
@@ -184,7 +193,8 @@
       <span class="tag subject-${q.subject}">${labelFor(q.subject)}</span>
       <span class="tag qtype-${q.qtype}">${QTYPE_LABELS[q.qtype] || q.qtype}</span>
       <span class="tag fmt">${FORMAT_LABELS[q.format] || q.format}</span>
-      <span class="tag diff-${q.difficulty}">${DIFF_LABELS[q.difficulty] || q.difficulty}</span>
+      <span class="tag round">${q.round ? 'Round ' + q.round : 'Round —'}</span>
+      ${q.visual ? '<span class="tag visual-warn">⚠ Visual</span>' : ''}
       <span class="small-note">${escapeHtml(q.tournament)}${q.roundLabel ? ' · ' + escapeHtml(q.roundLabel) : ''}</span>
     `;
     card.appendChild(meta);
@@ -239,12 +249,16 @@
     actions.appendChild(toggleBtn);
 
     const bmBtn = document.createElement('button');
-    bmBtn.className = 'btn small';
+    bmBtn.className = 'btn small icon-btn';
     const isBm = SBData.bookmarks.isBookmarked(q.id);
-    bmBtn.textContent = isBm ? '★ Bookmarked' : '☆ Bookmark';
+    bmBtn.textContent = isBm ? '★' : '☆';
+    bmBtn.classList.toggle('active', isBm);
+    bmBtn.title = isBm ? 'Unbookmark' : 'Bookmark';
     bmBtn.onclick = () => {
       const nowBm = SBData.bookmarks.toggle(q.id);
-      bmBtn.textContent = nowBm ? '★ Bookmarked' : '☆ Bookmark';
+      bmBtn.textContent = nowBm ? '★' : '☆';
+      bmBtn.classList.toggle('active', nowBm);
+      bmBtn.title = nowBm ? 'Unbookmark' : 'Bookmark';
       updateBookmarkCount();
       if (state.bookmarkedOnly && !nowBm) render();
     };

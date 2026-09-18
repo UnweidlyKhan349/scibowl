@@ -20,13 +20,13 @@
         tSlug: q.ts,
         round: q.r,
         roundLabel: q.rl,
-        difficulty: q.d,
         subject: q.s,
         format: q.f,
         qtype: q.qt,
         num: q.n,
         question: q.q,
         choices: q.c || null,
+        visual: !!q.v,
         answer: {
           text: q.a.t,
           letter: q.a.l || null,
@@ -93,26 +93,28 @@
   };
 
   /* ---------------- Filtering ---------------- */
-  // opts: { subjects, difficulties, tournaments, formats, qtypes, bookmarkedOnly, search }
-  // each of subjects/difficulties/tournaments/formats/qtypes is either null/empty (= all) or a Set/array of allowed values
+  // opts: { subjects, rounds, tournaments, formats, qtypes, bookmarkedOnly, search, includeVisual }
+  // each of subjects/rounds/tournaments/formats/qtypes is either null/empty (= all) or a Set/array of allowed values
   SBData.filterQuestions = function (opts) {
     opts = opts || {};
     const subjects = toSetOrNull(opts.subjects);
-    const difficulties = toSetOrNull(opts.difficulties);
+    const rounds = toSetOrNull(opts.rounds);
     const tournaments = toSetOrNull(opts.tournaments);
     const formats = toSetOrNull(opts.formats);
     const qtypes = toSetOrNull(opts.qtypes);
     const bookmarkedOnly = !!opts.bookmarkedOnly;
     const bookmarks = bookmarkedOnly ? readBookmarks() : null;
     const search = (opts.search || '').trim().toLowerCase();
+    const includeVisual = opts.includeVisual !== false;
 
     let out = SBData.questions.filter((q) => {
       if (subjects && !subjects.has(q.subject)) return false;
-      if (difficulties && !difficulties.has(q.difficulty)) return false;
+      if (rounds && !rounds.has(q.round)) return false;
       if (tournaments && !tournaments.has(q.tSlug)) return false;
       if (formats && !formats.has(q.format)) return false;
       if (qtypes && !qtypes.has(q.qtype)) return false;
       if (bookmarkedOnly && !bookmarks.has(q.id)) return false;
+      if (!includeVisual && q.visual) return false;
       return true;
     });
 

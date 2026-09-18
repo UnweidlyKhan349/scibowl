@@ -25,16 +25,26 @@
   <div class="setup-grid">
     <div class="panel" id="hostPanel">
       <h2>Host a room</h2>
+      <div class="filter-head">
+        <div class="section-title" style="margin:0;">Filters</div>
+        <div class="filter-actions">
+          <button class="btn small ghost" id="selectAllBtn">Select all</button>
+          <button class="btn small ghost" id="clearFiltersBtn">Clear all</button>
+        </div>
+      </div>
       <div class="section-title">Subject</div>
       <div class="chip-row" id="subjectChips"></div>
-      <div class="section-title">Difficulty</div>
-      <div class="chip-row" id="difficultyChips"></div>
+      <div class="section-title">Round</div>
+      <div class="chip-row" id="roundChips"></div>
       <div class="section-title">Question type</div>
       <div class="chip-row" id="qtypeChips"></div>
       <div class="section-title">Format</div>
       <div class="chip-row" id="formatChips"></div>
       <div class="section-title">Tournament</div>
       <select id="tournamentSelect" style="width:100%; max-width:420px;"><option value="">All tournaments</option></select>
+      <label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin-top:12px;">
+        <input type="checkbox" id="includeVisual" /> Include visual bonuses (reference an image we can't show)
+      </label>
       <div class="section-title">Session length</div>
       <select id="sessionLength" style="width:100%; max-width:420px;">
         <option value="10">10 questions</option>
@@ -53,7 +63,7 @@
     <div class="panel" id="joinPanel">
       <h2>Join a room</h2>
       <div class="section-title">Room code</div>
-      <input type="text" id="joinCodeInput" placeholder="e.g. sbowl-AB3XZ" style="width:100%;" />
+      <input type="text" id="joinCodeInput" placeholder="e.g. AB3XZ" style="width:100%;" />
       <div class="section-title">Your name</div>
       <input type="text" id="joinNameInput" placeholder="e.g. Sam" style="width:100%;" />
       <div style="margin-top:18px;">
@@ -80,41 +90,56 @@
 </div>
 
 <!-- ============== IN-GAME ============== -->
-<div class="game-wrap" id="mpGameScreen" style="display:none;">
-  <div class="score-bar">
-    <div>
+<div class="game-wrap mp-layout" id="mpGameScreen" style="display:none;">
+  <div class="mp-main">
+    <div class="score-bar">
       <div class="qcount" id="mpProgress">Question 1</div>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <span class="pause-badge" id="mpPauseBadge" style="display:none;">⏸ Paused</span>
+        <button class="btn small" id="mpPauseBtn" style="display:none;">Pause (P)</button>
+        <button class="btn small ghost" id="mpEndBtn">Leave game</button>
+      </div>
     </div>
-    <button class="btn small ghost" id="mpEndBtn">Leave game</button>
+
+    <div class="meta-strip" id="mpMetaStrip"></div>
+
+    <div class="question-panel">
+      <div class="status-pill" id="mpStatusPill">Revealing…</div>
+      <div class="q-display" id="mpQDisplay"></div>
+      <div class="choices-display" id="mpChoicesDisplay" style="display:none;">
+        <div class="choice-box" data-letter="W"><span class="letter">W)</span><span class="choice-text" id="mpChoiceTextW"></span></div>
+        <div class="choice-box" data-letter="X"><span class="letter">X)</span><span class="choice-text" id="mpChoiceTextX"></span></div>
+        <div class="choice-box" data-letter="Y"><span class="letter">Y)</span><span class="choice-text" id="mpChoiceTextY"></span></div>
+        <div class="choice-box" data-letter="Z"><span class="letter">Z)</span><span class="choice-text" id="mpChoiceTextZ"></span></div>
+      </div>
+
+      <div class="timer-row" id="mpTimerRow" style="display:none;">
+        <div class="timer-bar-track"><div class="timer-bar-fill" id="mpTimerFill"></div></div>
+        <div class="timer-label" id="mpTimerLabel">4.0s</div>
+      </div>
+
+      <div class="answer-input-row" id="mpAnswerRow" style="display:none;">
+        <input type="text" id="mpAnswerInput" placeholder="Type your answer and press Enter…" autocomplete="off" />
+        <button class="btn primary" id="mpSubmitBtn">Submit</button>
+      </div>
+
+      <div class="reveal-box" id="mpRevealBox" style="display:none;"></div>
+      <div class="small-note" id="mpJudgeNote" style="display:none; margin-top:10px;"></div>
+
+      <div class="controls-row">
+        <button class="btn" id="mpBuzzBtn" style="display:none;">🔔 Buzz in (Space)</button>
+        <button class="btn primary" id="mpNextBtn" style="display:none;">Next question (N)</button>
+        <button class="btn ghost" id="mpOverrideBtn" style="display:none;">↺ Override grade</button>
+        <span class="shortcut-hint">Space buzz · N next (anyone)</span>
+      </div>
+    </div>
+
+    <div class="q-log" id="mpQuestionLog"></div>
   </div>
 
-  <div class="mp-players" id="mpPlayerList" style="margin-bottom:16px;"></div>
-
-  <div class="meta-strip" id="mpMetaStrip"></div>
-
-  <div class="question-panel">
-    <div class="status-pill" id="mpStatusPill">Reading…</div>
-    <div class="q-display" id="mpQDisplay"></div>
-    <div class="choices-display" id="mpChoicesDisplay" style="display:none;"></div>
-
-    <div class="timer-row" id="mpTimerRow" style="display:none;">
-      <div class="timer-bar-track"><div class="timer-bar-fill" id="mpTimerFill"></div></div>
-      <div class="timer-label" id="mpTimerLabel">4.0s</div>
-    </div>
-
-    <div class="answer-input-row" id="mpAnswerRow" style="display:none;">
-      <input type="text" id="mpAnswerInput" placeholder="Type your answer and press Enter…" autocomplete="off" />
-      <button class="btn primary" id="mpSubmitBtn">Submit</button>
-    </div>
-
-    <div class="reveal-box" id="mpRevealBox" style="display:none;"></div>
-    <div class="panel" id="mpJudgePanel" style="display:none; margin-top:16px;"></div>
-
-    <div class="controls-row">
-      <button class="btn" id="mpBuzzBtn" style="display:none;">🔔 Buzz in (Space)</button>
-      <button class="btn ghost" id="mpNextBtn" style="display:none;">Next question → (N)</button>
-      <span class="shortcut-hint">Space buzz · N next (anyone)</span>
-    </div>
+  <div class="mp-sidebar">
+    <div class="section-title" style="margin-top:0;">Leaderboard</div>
+    <div class="mp-players" id="mpPlayerList"></div>
   </div>
 </div>
 
@@ -133,7 +158,7 @@
 <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script src="js/data.js"></script>
 <script src="js/answer-check.js"></script>
-<script src="js/tts.js"></script>
+<script src="js/reveal.js"></script>
 <script src="js/peer.js"></script>
 <script src="js/multiplayer.js"></script>
 </body>

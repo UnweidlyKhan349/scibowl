@@ -26,6 +26,29 @@
     return max >= 2 && max <= 9 ? max : null;
   }
 
+  // Does the question ask for a *sequence* ("order/rank/arrange the following...")
+  // rather than an order-independent *set* ("identify/list all that apply...")?
+  // This matters because "312" (a ranking answer) must NOT be treated as
+  // equivalent to "132" the way "1 and 2" is equivalent to "2 and 1" for a
+  // set-selection question - order is the whole point of a ranking answer.
+  function isRankingQuestion(questionText) {
+    if (!questionText) return false;
+    return /\b(order|rank|arrange)\b(?:[^.?!]{0,20}\b(the following|these|below)\b)/i.test(questionText)
+      || /\bin order (from|of)\b[^.?!]{0,60}\bto\b/i.test(questionText)
+      || /\bfrom\b[^.?!]{0,30}\bto\b[^.?!]{0,10}\b(order|arrange|rank)\b/i.test(questionText);
+  }
+
+  // Canonicalize a ranking-style answer ("3, 1, 2" / "312") to its digit
+  // sequence AS TYPED - order is preserved, not sorted.
+  function canonicalizeRanked(raw, itemCount) {
+    if (!itemCount) return null;
+    const up = normalize(raw);
+    if (!up) return null;
+    const digits = (up.match(/[1-9]/g) || []).map(Number).filter((d) => d <= itemCount);
+    if (!digits.length) return null;
+    return digits.join('');
+  }
+
   // Try to interpret a string as a "list of item numbers" answer, e.g.
   // "1 AND 3", "1, 3", "13", "ALL", "3 ONLY", "NONE" -> canonical sorted-digit string like "13".
   // Returns null if it doesn't look like a list-style answer.
@@ -51,10 +74,13 @@
       }
     }
 
-    // "1 AND 3", "1, 3", "1 3", "3 ONLY", "2 AND 3 ONLY"
-    if (/^[1-9OANDRLY,\s]+$/.test(up.replace(/ONLY/g, '').replace(/AND|OR/g, ''))) {
-      const digits = (up.match(/[1-9]/g) || []).map(Number).filter((d) => d <= itemCount);
-      if (digits.length) {
+    // "1 AND 3", "1, 3", "3 ONLY", "2 AND 3 ONLY" - must contain a real list
+    // separator (comma) or list word (AND/OR/ONLY), never a bare number like
+    // "144", which is not a list-style answer at all.
+    const hasListWord = /\b(AND|OR|ONLY)\b/.test(up) || up.includes(',');
+    if (hasListWord && /^[1-9OANDRLY,\s]+$/.test(up.replace(/ONLY/g, '').replace(/AND|OR/g, ''))) {
+      const digits = (up.match(/[1-9]/g) || []).map(Number);
+      if (digits.length && digits.every((dd) => dd <= itemCount)) {
         return digitsToCanonical(digits);
       }
     }
@@ -135,16 +161,18 @@
       }
     }
 
-    // ---- List-style answers ("1 and 2", "all", "3 only", ...) ----
+    // ---- List-style answers ("1 and 2", "all", "3 only", "312" ranking, ...) ----
     if (itemCount) {
-      const userCanon = canonicalizeList(raw, itemCount);
+      const ranking = isRankingQuestion(question.question);
+      const canonFn = ranking ? canonicalizeRanked : canonicalizeList;
+      const userCanon = canonFn(raw, itemCount);
       if (userCanon !== null) {
-        const mainCanon = canonicalizeList(ans.text, itemCount);
+        const mainCanon = canonFn(ans.text, itemCount);
         if (mainCanon !== null && userCanon === mainCanon) {
           return { correct: true, matched: 'main', rejected: false };
         }
         for (const acc of ans.accept || []) {
-          const accCanon = canonicalizeList(acc, itemCount);
+          const accCanon = canonFn(acc, itemCount);
           if (accCanon !== null && userCanon === accCanon) {
             return { correct: true, matched: 'accept', rejected: false };
           }
@@ -179,6 +207,8 @@
     normalize,
     detectItemCount,
     canonicalizeList,
+    canonicalizeRanked,
+    isRankingQuestion,
     checkAnswer,
   };
 })(window);
