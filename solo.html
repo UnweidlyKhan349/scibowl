@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Solo Practice · SciBowl Practice</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+<nav class="nav">
+  <div class="brand"><span class="dot"></span> SciBowl Practice</div>
+  <a class="navlink" href="index.html">Home</a>
+  <a class="navlink" href="catalog.html">Catalog</a>
+  <a class="navlink active" href="solo.html">Solo Practice</a>
+  <a class="navlink" href="multiplayer.html">Multiplayer</a>
+  <div class="spacer"></div>
+  <span class="bookmark-count" id="bmCount"></span>
+</nav>
+
+<!-- ============== SETUP SCREEN ============== -->
+<div class="container" id="setupScreen">
+  <h1>Solo Practice</h1>
+  <p class="subtitle">Pick what you want to drill, then start. Questions are read aloud — buzz in with <kbd>Space</kbd> whenever you're ready.</p>
+
+  <div class="setup-grid">
+    <div class="panel">
+      <div class="section-title">Subject</div>
+      <div class="chip-row" id="subjectChips"></div>
+
+      <div class="section-title">Difficulty</div>
+      <div class="chip-row" id="difficultyChips"></div>
+
+      <div class="section-title">Question type</div>
+      <div class="chip-row" id="qtypeChips"></div>
+
+      <div class="section-title">Format</div>
+      <div class="chip-row" id="formatChips"></div>
+
+      <div class="section-title">Tournament</div>
+      <select id="tournamentSelect" style="width:100%; max-width: 420px;">
+        <option value="">All tournaments</option>
+      </select>
+
+      <div class="section-title">Bookmarks</div>
+      <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+        <input type="checkbox" id="bookmarkedOnly" /> Only play my bookmarked questions
+      </label>
+    </div>
+
+    <div class="panel">
+      <div class="section-title">Reading speed</div>
+      <div class="slider-row">
+        <input type="range" id="rateSlider" min="0.5" max="2" step="0.1" value="1" />
+        <span class="slider-value" id="rateValue">1.0×</span>
+      </div>
+      <p class="small-note" id="ttsWarning" style="display:none; color: var(--warn);">Your browser doesn't support text-to-speech — questions will display as text only.</p>
+
+      <div class="section-title">Session length</div>
+      <select id="sessionLength" style="width:100%;">
+        <option value="10">10 questions</option>
+        <option value="20" selected>20 questions</option>
+        <option value="40">40 questions</option>
+        <option value="9999">All matching questions</option>
+      </select>
+
+      <div class="section-title">Order</div>
+      <select id="orderMode" style="width:100%;">
+        <option value="shuffle" selected>Shuffled</option>
+        <option value="inorder">Packet order</option>
+      </select>
+
+      <div style="margin-top:22px;">
+        <button class="btn primary" id="startBtn" style="width:100%; justify-content:center; font-size:15px; padding:12px;">Start practice</button>
+        <p class="small-note" id="matchCount" style="margin-top:10px;"></p>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-title">Shortcuts</div>
+  <div class="panel small-note">
+    <kbd>Space</kbd> buzz in &nbsp;·&nbsp; <kbd>Enter</kbd> submit answer &nbsp;·&nbsp; <kbd>N</kbd> next question &nbsp;·&nbsp;
+    <kbd>S</kbd> skip &nbsp;·&nbsp; <kbd>Q</kbd> override grading &nbsp;·&nbsp; <kbd>B</kbd> bookmark &nbsp;·&nbsp; <kbd>P</kbd> pause
+  </div>
+</div>
+
+<!-- ============== GAME SCREEN ============== -->
+<div class="game-wrap" id="gameScreen" style="display:none;">
+  <div class="score-bar">
+    <div>
+      <div class="score" id="scoreDisplay">0</div>
+      <div class="qcount" id="progressDisplay">Question 1</div>
+    </div>
+    <div style="display:flex; gap:8px;">
+      <button class="btn small" id="pauseBtn">⏸ Pause</button>
+      <button class="btn small ghost" id="endSessionBtn">End session</button>
+    </div>
+  </div>
+
+  <div class="meta-strip" id="metaStrip"></div>
+
+  <div class="question-panel">
+    <div class="status-pill" id="statusPill">Reading…</div>
+    <div class="q-display" id="qDisplay"></div>
+    <div class="choices-display" id="choicesDisplay" style="display:none;"></div>
+
+    <div class="timer-row" id="timerRow" style="display:none;">
+      <div class="timer-bar-track"><div class="timer-bar-fill" id="timerFill"></div></div>
+      <div class="timer-label" id="timerLabel">4.0s</div>
+    </div>
+
+    <div class="answer-input-row" id="answerRow" style="display:none;">
+      <input type="text" id="answerInput" placeholder="Type your answer and press Enter…" autocomplete="off" />
+      <button class="btn primary" id="submitAnswerBtn">Submit</button>
+    </div>
+
+    <div class="reveal-box" id="revealBox" style="display:none;"></div>
+
+    <div class="controls-row">
+      <button class="btn" id="buzzBtn" style="display:none;">🔔 Buzz in (Space)</button>
+      <button class="btn ghost" id="skipBtn">Skip (S)</button>
+      <button class="btn ghost" id="bookmarkBtn">☆ Bookmark (B)</button>
+      <button class="btn ghost" id="overrideBtn" style="display:none;">↺ Override grading (Q)</button>
+      <button class="btn primary" id="nextBtn" style="display:none;">Next question → (N)</button>
+      <span class="shortcut-hint">Space buzz · N next · S skip · Q override · B bookmark · P pause</span>
+    </div>
+  </div>
+</div>
+
+<!-- ============== PAUSE OVERLAY ============== -->
+<div id="pauseOverlay" class="loading-overlay" style="display:none;">
+  <div style="font-size:40px;">⏸</div>
+  <div style="font-size:18px; font-weight:700;">Paused</div>
+  <button class="btn primary" id="resumeBtn">Resume (P)</button>
+</div>
+
+<!-- ============== SUMMARY SCREEN ============== -->
+<div class="container" id="summaryScreen" style="display:none;">
+  <h1>Session complete</h1>
+  <div class="panel">
+    <div class="summary-row" id="summaryStats"></div>
+  </div>
+  <div style="margin-top:20px; display:flex; gap:10px;">
+    <button class="btn primary" id="playAgainBtn">Practice again</button>
+    <a class="btn ghost" href="catalog.html">Browse catalog</a>
+  </div>
+</div>
+
+<script src="js/data.js"></script>
+<script src="js/answer-check.js"></script>
+<script src="js/tts.js"></script>
+<script src="js/solo.js"></script>
+</body>
+</html>

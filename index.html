@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SciBowl Practice</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+<nav class="nav">
+  <div class="brand"><span class="dot"></span> SciBowl Practice</div>
+  <a class="navlink active" href="index.html">Home</a>
+  <a class="navlink" href="catalog.html">Catalog</a>
+  <a class="navlink" href="solo.html">Solo Practice</a>
+  <a class="navlink" href="multiplayer.html">Multiplayer</a>
+  <div class="spacer"></div>
+  <span class="bookmark-count" id="bmCount"></span>
+</nav>
+
+<div class="hero">
+  <h1>Science Bowl practice, built from real packets</h1>
+  <p class="subtitle" id="tagline">Loading question bank…</p>
+
+  <div class="mode-grid container" style="padding-top:0;">
+    <a class="mode-card" href="catalog.html">
+      <div class="icon">📚</div>
+      <h3>Catalog</h3>
+      <p>Browse and search every question by subject, tournament, round, and format. Bookmark the ones you want to revisit.</p>
+    </a>
+    <a class="mode-card" href="solo.html">
+      <div class="icon">🎧</div>
+      <h3>Solo Practice</h3>
+      <p>Questions are read aloud at your chosen speed. Buzz in, type your answer, and get graded with real Science Bowl scoring.</p>
+    </a>
+    <a class="mode-card" href="multiplayer.html">
+      <div class="icon">🧑‍🤝‍🧑</div>
+      <h3>Multiplayer</h3>
+      <p>Host or join a room with friends. Everyone can buzz — first in locks the rest out until they've answered.</p>
+    </a>
+  </div>
+</div>
+
+<div class="container">
+  <div class="footer-note">
+    Questions sourced from publicly posted practice packets on scibowl.live. Answers, subjects, and rounds were parsed automatically and may occasionally contain errors — use the catalog to spot-check anything that looks off.
+  </div>
+</div>
+
+<script src="js/data.js"></script>
+<script>
+  SBData.load().then(() => {
+    const n = SBData.meta.totalQuestions.toLocaleString();
+    const t = SBData.meta.tournaments.length;
+    document.getElementById('tagline').textContent = `${n} questions from ${t} tournaments — search, drill, and compete.`;
+    const bm = SBData.bookmarks.count();
+    document.getElementById('bmCount').textContent = bm ? `★ ${bm} bookmarked` : '';
+  }).catch(() => {
+    document.getElementById('tagline').textContent = 'Could not load the question bank. Try refreshing.';
+  });
+</script>
+</body>
+</html>

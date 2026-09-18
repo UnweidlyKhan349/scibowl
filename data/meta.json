@@ -1,0 +1,379 @@
+{
+ "totalQuestions": 36145,
+ "tournaments": [
+  {
+   "slug": "aves-2025",
+   "name": "AVES 2025",
+   "count": 515
+  },
+  {
+   "slug": "based-2025",
+   "name": "BASED 2025",
+   "count": 603
+  },
+  {
+   "slug": "bash-2025",
+   "name": "Bash 2025",
+   "count": 628
+  },
+  {
+   "slug": "basis-peoria-rounds",
+   "name": "BASIS Peoria Rounds",
+   "count": 746
+  },
+  {
+   "slug": "berkeley-2023",
+   "name": "Berkeley 2023",
+   "count": 637
+  },
+  {
+   "slug": "bths-2025",
+   "name": "BTHS 2025",
+   "count": 46
+  },
+  {
+   "slug": "cast",
+   "name": "Cast",
+   "count": 386
+  },
+  {
+   "slug": "ccwt",
+   "name": "CCWT",
+   "count": 279
+  },
+  {
+   "slug": "ccwtwo",
+   "name": "CCWTWO",
+   "count": 267
+  },
+  {
+   "slug": "csbl",
+   "name": "CSBL",
+   "count": 693
+  },
+  {
+   "slug": "csub",
+   "name": "CSUB",
+   "count": 1211
+  },
+  {
+   "slug": "dasoni-comp1",
+   "name": "Dasoni Comp1",
+   "count": 367
+  },
+  {
+   "slug": "dasoni-standard1",
+   "name": "Dasoni Standard1",
+   "count": 504
+  },
+  {
+   "slug": "dast-2025",
+   "name": "Dast 2025",
+   "count": 452
+  },
+  {
+   "slug": "dast1",
+   "name": "DAST1",
+   "count": 457
+  },
+  {
+   "slug": "david-rounds",
+   "name": "David Rounds",
+   "count": 303
+  },
+  {
+   "slug": "deadbird-invitational",
+   "name": "Deadbird Invitational",
+   "count": 393
+  },
+  {
+   "slug": "dvhs-2025",
+   "name": "Dvhs 2025",
+   "count": 169
+  },
+  {
+   "slug": "esbot-1",
+   "name": "ESBOT 1",
+   "count": 535
+  },
+  {
+   "slug": "esbot-2",
+   "name": "ESBOT 2",
+   "count": 587
+  },
+  {
+   "slug": "fem-2025",
+   "name": "FE!M 2025",
+   "count": 578
+  },
+  {
+   "slug": "gwhs-rounds",
+   "name": "GWHS Rounds",
+   "count": 735
+  },
+  {
+   "slug": "icsbt-2025",
+   "name": "ICSBT 2025",
+   "count": 350
+  },
+  {
+   "slug": "ignis-2022",
+   "name": "IGNIS 2022",
+   "count": 720
+  },
+  {
+   "slug": "isbi-2025",
+   "name": "ISBI 2025",
+   "count": 115
+  },
+  {
+   "slug": "isbl",
+   "name": "ISBL",
+   "count": 210
+  },
+  {
+   "slug": "lexscibowl",
+   "name": "Lexscibowl",
+   "count": 403
+  },
+  {
+   "slug": "lost-1",
+   "name": "LOST 1",
+   "count": 592
+  },
+  {
+   "slug": "mehs-rounds",
+   "name": "MEHS Rounds",
+   "count": 775
+  },
+  {
+   "slug": "mhs-rounds",
+   "name": "MHS Rounds",
+   "count": 815
+  },
+  {
+   "slug": "mit-2020",
+   "name": "MIT 2020",
+   "count": 597
+  },
+  {
+   "slug": "mit-2021",
+   "name": "MIT 2021",
+   "count": 594
+  },
+  {
+   "slug": "mit-2022",
+   "name": "MIT 2022",
+   "count": 641
+  },
+  {
+   "slug": "mit-2023",
+   "name": "MIT 2023",
+   "count": 597
+  },
+  {
+   "slug": "mit-2024",
+   "name": "MIT 2024",
+   "count": 644
+  },
+  {
+   "slug": "mit-2025",
+   "name": "MIT 2025",
+   "count": 948
+  },
+  {
+   "slug": "mnsbt-2024",
+   "name": "MNSBT 2024",
+   "count": 637
+  },
+  {
+   "slug": "moose",
+   "name": "Moose",
+   "count": 457
+  },
+  {
+   "slug": "mosfet-2",
+   "name": "MOSFET 2",
+   "count": 500
+  },
+  {
+   "slug": "mosfet1",
+   "name": "Mosfet1",
+   "count": 566
+  },
+  {
+   "slug": "nesb",
+   "name": "NESB",
+   "count": 991
+  },
+  {
+   "slug": "nnhs-rounds",
+   "name": "NNHS Rounds",
+   "count": 777
+  },
+  {
+   "slug": "nsba1",
+   "name": "NSBA1",
+   "count": 657
+  },
+  {
+   "slug": "nsba2",
+   "name": "NSBA2",
+   "count": 287
+  },
+  {
+   "slug": "nsi_2024",
+   "name": "NSI 2024",
+   "count": 247
+  },
+  {
+   "slug": "nwi_2024",
+   "name": "NWI 2024",
+   "count": 272
+  },
+  {
+   "slug": "nwi-2025",
+   "name": "NWI 2025",
+   "count": 381
+  },
+  {
+   "slug": "pohaku-2024",
+   "name": "Pohaku 2024",
+   "count": 319
+  },
+  {
+   "slug": "prometheus-2021",
+   "name": "Prometheus 2021",
+   "count": 814
+  },
+  {
+   "slug": "prometheus-2023",
+   "name": "Prometheus 2023",
+   "count": 622
+  },
+  {
+   "slug": "random",
+   "name": "Random",
+   "count": 781
+  },
+  {
+   "slug": "random-stuff",
+   "name": "Random Stuff",
+   "count": 489
+  },
+  {
+   "slug": "sbl",
+   "name": "SBL",
+   "count": 1678
+  },
+  {
+   "slug": "sbst",
+   "name": "SBST",
+   "count": 617
+  },
+  {
+   "slug": "sbst-spring",
+   "name": "SBST (Spring)",
+   "count": 636
+  },
+  {
+   "slug": "scb-2025",
+   "name": "SCB 2025",
+   "count": 472
+  },
+  {
+   "slug": "smh-2025",
+   "name": "SMH 2025",
+   "count": 525
+  },
+  {
+   "slug": "ssbt-2023",
+   "name": "SSBT 2023",
+   "count": 549
+  },
+  {
+   "slug": "stanford_2025",
+   "name": "Stanford 2025",
+   "count": 644
+  },
+  {
+   "slug": "summer",
+   "name": "Summer",
+   "count": 136
+  },
+  {
+   "slug": "texas_sci_bowl_2025",
+   "name": "Texas Sci Bowl 2025",
+   "count": 642
+  },
+  {
+   "slug": "thumb-2025",
+   "name": "THUMB 2025",
+   "count": 201
+  },
+  {
+   "slug": "tjsbt-2025",
+   "name": "Tjsbt 2025",
+   "count": 583
+  },
+  {
+   "slug": "walton-rounds",
+   "name": "Walton Rounds",
+   "count": 756
+  },
+  {
+   "slug": "wisc-2021",
+   "name": "WISC 2021",
+   "count": 363
+  },
+  {
+   "slug": "wsbt",
+   "name": "WSBT",
+   "count": 454
+  }
+ ],
+ "subjects": [
+  {
+   "key": "math",
+   "label": "Math"
+  },
+  {
+   "key": "phys",
+   "label": "Physics"
+  },
+  {
+   "key": "bio",
+   "label": "Biology"
+  },
+  {
+   "key": "chem",
+   "label": "Chemistry"
+  },
+  {
+   "key": "ess",
+   "label": "Earth & Space"
+  },
+  {
+   "key": "energy",
+   "label": "Energy"
+  },
+  {
+   "key": "other",
+   "label": "Other"
+  }
+ ],
+ "difficulties": [
+  "RR",
+  "DE",
+  "Unknown"
+ ],
+ "formats": [
+  "SA",
+  "MC"
+ ],
+ "qtypes": [
+  "tossup",
+  "bonus"
+ ],
+ "generatedAt": "2026-09-17"
+}

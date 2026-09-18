@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Catalog · SciBowl Practice</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+<nav class="nav">
+  <div class="brand"><span class="dot"></span> SciBowl Practice</div>
+  <a class="navlink" href="index.html">Home</a>
+  <a class="navlink active" href="catalog.html">Catalog</a>
+  <a class="navlink" href="solo.html">Solo Practice</a>
+  <a class="navlink" href="multiplayer.html">Multiplayer</a>
+  <div class="spacer"></div>
+  <span class="bookmark-count" id="bmCount"></span>
+</nav>
+
+<div class="container">
+  <h1>Catalog</h1>
+  <p class="subtitle" id="resultCount">Loading…</p>
+
+  <div class="panel" style="margin-bottom:20px;">
+    <div style="margin-bottom:16px;">
+      <span class="field-label">Search</span>
+      <input type="search" id="searchBox" placeholder="Search question text, answers, or tournament…" style="width:100%; max-width: 520px;" />
+    </div>
+
+    <div class="grid-filters">
+      <div>
+        <span class="field-label">Subject</span>
+        <div class="chip-row" id="subjectChips"></div>
+      </div>
+      <div>
+        <span class="field-label">Difficulty</span>
+        <div class="chip-row" id="difficultyChips"></div>
+      </div>
+      <div>
+        <span class="field-label">Question type</span>
+        <div class="chip-row" id="qtypeChips"></div>
+      </div>
+      <div>
+        <span class="field-label">Format</span>
+        <div class="chip-row" id="formatChips"></div>
+      </div>
+    </div>
+
+    <div class="grid-filters" style="margin-top:16px;">
+      <div>
+        <span class="field-label">Tournament</span>
+        <select id="tournamentSelect" style="width:100%;">
+          <option value="">All tournaments</option>
+        </select>
+      </div>
+      <div>
+        <span class="field-label">Bookmarks</span>
+        <label style="display:flex; align-items:center; gap:8px; margin-top:8px; cursor:pointer;">
+          <input type="checkbox" id="bookmarkedOnly" /> Show bookmarked only
+        </label>
+      </div>
+      <div style="align-self: end;">
+        <button class="btn ghost" id="clearFilters">Clear all filters</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="results"></div>
+  <div class="pagination" id="pagination"></div>
+</div>
+
+<script src="js/data.js"></script>
+<script src="js/catalog.js"></script>
+</body>
+</html>
