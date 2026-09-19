@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Bookmarks · SciBowl Practice</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+<nav class="nav">
+  <div class="brand"><span class="dot"></span> SciBowl Practice</div>
+  <a class="navlink" href="index.html">Home</a>
+  <a class="navlink" href="catalog.html">Catalog</a>
+  <a class="navlink" href="solo.html">Solo Practice</a>
+  <a class="navlink" href="multiplayer.html">Multiplayer</a>
+  <div class="spacer"></div>
+  <a class="navlink active" href="bookmarks.html">Bookmarked questions</a>
+</nav>
+
+<div class="container">
+  <h1>Bookmarked questions</h1>
+  <p class="subtitle" id="resultCount">Loading…</p>
+
+  <div class="panel" style="margin-bottom:20px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+    <p class="small-note" style="margin:0;">Practice only the questions you've starred, in a shuffled solo session.</p>
+    <button class="btn primary" id="practiceBtn" style="padding:12px 20px;">Practice these</button>
+  </div>
+
+  <div id="results"></div>
+</div>
+
+<script src="js/data.js"></script>
+<script src="js/bookmarks.js"></script>
+</body>
+</html>

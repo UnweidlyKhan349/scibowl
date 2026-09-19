@@ -14,13 +14,13 @@
   <a class="navlink" href="solo.html">Solo Practice</a>
   <a class="navlink active" href="multiplayer.html">Multiplayer</a>
   <div class="spacer"></div>
-  <span class="bookmark-count" id="bmCount"></span>
+  <a class="navlink" href="bookmarks.html">Bookmarked questions</a>
 </nav>
 
 <!-- ============== LOBBY / CHOOSE MODE ============== -->
 <div class="container" id="lobbyScreen">
   <h1>Multiplayer</h1>
-  <p class="subtitle">Host a room and share the code, or join a friend's room. Everyone can buzz — first in locks the rest out until they've answered.</p>
+  <p class="subtitle">Host a room and share the code, or join a friend's room. Everyone can buzz — first in locks the rest out until they've answered. Once a room is open, anyone can press <kbd>N</kbd> to start — and you can join in the middle of a question already in progress.</p>
 
   <div class="setup-grid">
     <div class="panel" id="hostPanel">
@@ -35,7 +35,16 @@
       <div class="section-title">Subject</div>
       <div class="chip-row" id="subjectChips"></div>
       <div class="section-title">Round</div>
-      <div class="chip-row" id="roundChips"></div>
+      <div class="dual-slider" id="roundSlider">
+        <div class="track"></div>
+        <div class="range-fill" id="roundSliderFill"></div>
+        <input type="range" id="roundMin" min="1" max="17" value="1" step="1" />
+        <input type="range" id="roundMax" min="1" max="17" value="17" step="1" />
+      </div>
+      <div class="round-range-label" id="roundRangeLabel">Rounds 1–17</div>
+      <label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin-top:8px;">
+        <input type="checkbox" id="includeUnlabeledRounds" checked /> Include unlabeled rounds
+      </label>
       <div class="section-title">Question type</div>
       <div class="chip-row" id="qtypeChips"></div>
       <div class="section-title">Format</div>
@@ -45,13 +54,6 @@
       <label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin-top:12px;">
         <input type="checkbox" id="includeVisual" /> Include visual bonuses (reference an image we can't show)
       </label>
-      <div class="section-title">Session length</div>
-      <select id="sessionLength" style="width:100%; max-width:420px;">
-        <option value="10">10 questions</option>
-        <option value="20" selected>20 questions</option>
-        <option value="40">40 questions</option>
-        <option value="9999">All matching questions</option>
-      </select>
       <p class="small-note" id="matchCount" style="margin-top:10px;"></p>
       <div class="section-title">Your name (host)</div>
       <input type="text" id="hostNameInput" placeholder="e.g. Alex" style="width:100%; max-width:300px;" />
@@ -74,26 +76,14 @@
   </div>
 </div>
 
-<!-- ============== WAITING ROOM ============== -->
-<div class="container" id="waitingScreen" style="display:none;">
-  <h1>Waiting room</h1>
-  <div class="panel">
-    <p class="small-note">Room code — share this with the others:</p>
-    <div class="room-code" id="roomCodeDisplay">-----</div>
-    <div class="section-title">Players</div>
-    <div class="mp-players" id="waitingPlayers"></div>
-    <div style="margin-top:18px;" id="hostControls">
-      <button class="btn primary" id="startGameBtn">Start game</button>
-    </div>
-    <p class="small-note" id="waitingNote" style="margin-top:10px;"></p>
-  </div>
-</div>
-
 <!-- ============== IN-GAME ============== -->
 <div class="game-wrap mp-layout" id="mpGameScreen" style="display:none;">
   <div class="mp-main">
     <div class="score-bar">
-      <div class="qcount" id="mpProgress">Question 1</div>
+      <div class="room-code-strip">
+        <span class="small-note">Room</span>
+        <span class="room-code" id="mpRoomCodeDisplay">-----</span>
+      </div>
       <div style="display:flex; gap:8px; align-items:center;">
         <span class="pause-badge" id="mpPauseBadge" style="display:none;">⏸ Paused</span>
         <button class="btn small" id="mpPauseBtn" style="display:none;">Pause (P)</button>
@@ -104,7 +94,12 @@
     <div class="meta-strip" id="mpMetaStrip"></div>
 
     <div class="question-panel">
-      <div class="status-pill" id="mpStatusPill">Revealing…</div>
+      <div class="status-pill" id="mpStatusPill" style="display:none;"></div>
+      <div class="reveal-tags" id="mpRevealTags">
+        <span class="tag" id="mpRevealSubjectTag"></span>
+        <span class="tag" id="mpRevealFormatTag"></span>
+        <span class="tag" id="mpRevealQtypeTag"></span>
+      </div>
       <div class="q-display" id="mpQDisplay"></div>
       <div class="choices-display" id="mpChoicesDisplay" style="display:none;">
         <div class="choice-box" data-letter="W"><span class="letter">W)</span><span class="choice-text" id="mpChoiceTextW"></span></div>
@@ -122,24 +117,35 @@
         <input type="text" id="mpAnswerInput" placeholder="Type your answer and press Enter…" autocomplete="off" />
         <button class="btn primary" id="mpSubmitBtn">Submit</button>
       </div>
+      <div class="mp-live-typing" id="mpLiveTyping" style="display:none;"></div>
 
       <div class="reveal-box" id="mpRevealBox" style="display:none;"></div>
       <div class="small-note" id="mpJudgeNote" style="display:none; margin-top:10px;"></div>
 
       <div class="controls-row">
-        <button class="btn" id="mpBuzzBtn" style="display:none;">🔔 Buzz in (Space)</button>
-        <button class="btn primary" id="mpNextBtn" style="display:none;">Next question (N)</button>
+        <button class="btn primary" id="mpBuzzBtn" style="display:none;">🔔 Buzz in (Space)</button>
+        <button class="btn" id="mpNextBtn" style="display:none;">Next question (N)</button>
         <button class="btn ghost" id="mpOverrideBtn" style="display:none;">↺ Override grade</button>
         <span class="shortcut-hint">Space buzz · N next (anyone)</span>
       </div>
     </div>
 
+    <div class="section-title">Previous questions</div>
     <div class="q-log" id="mpQuestionLog"></div>
   </div>
 
   <div class="mp-sidebar">
     <div class="section-title" style="margin-top:0;">Leaderboard</div>
     <div class="mp-players" id="mpPlayerList"></div>
+
+    <div class="mp-chat">
+      <div class="section-title" style="margin-top:0;">Chat</div>
+      <div class="mp-chat-log" id="mpChatLog"></div>
+      <div class="mp-chat-row">
+        <input type="text" id="mpChatInput" placeholder="Say something…" autocomplete="off" />
+        <button class="btn small" id="mpChatSendBtn">Send</button>
+      </div>
+    </div>
   </div>
 </div>
 

@@ -14,7 +14,7 @@
   <a class="navlink" href="solo.html">Solo Practice</a>
   <a class="navlink" href="multiplayer.html">Multiplayer</a>
   <div class="spacer"></div>
-  <span class="bookmark-count" id="bmCount"></span>
+  <a class="navlink" href="bookmarks.html">Bookmarked questions</a>
 </nav>
 
 <div class="container">
@@ -34,7 +34,16 @@
       </div>
       <div>
         <span class="field-label">Round</span>
-        <div class="chip-row" id="roundChips"></div>
+        <div class="dual-slider" id="roundSlider">
+          <div class="track"></div>
+          <div class="range-fill" id="roundSliderFill"></div>
+          <input type="range" id="roundMin" min="1" max="17" value="1" step="1" />
+          <input type="range" id="roundMax" min="1" max="17" value="17" step="1" />
+        </div>
+        <div class="round-range-label" id="roundRangeLabel">Rounds 1–17</div>
+        <label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin-top:6px;">
+          <input type="checkbox" id="includeUnlabeledRounds" checked /> Include unlabeled
+        </label>
       </div>
       <div>
         <span class="field-label">Question type</span>

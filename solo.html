@@ -14,7 +14,7 @@
   <a class="navlink active" href="solo.html">Solo Practice</a>
   <a class="navlink" href="multiplayer.html">Multiplayer</a>
   <div class="spacer"></div>
-  <span class="bookmark-count" id="bmCount"></span>
+  <a class="navlink" href="bookmarks.html">Bookmarked questions</a>
 </nav>
 
 <!-- ============== SETUP SCREEN ============== -->
@@ -36,7 +36,16 @@
       <div class="chip-row" id="subjectChips"></div>
 
       <div class="section-title">Round</div>
-      <div class="chip-row" id="roundChips"></div>
+      <div class="dual-slider" id="roundSlider">
+        <div class="track"></div>
+        <div class="range-fill" id="roundSliderFill"></div>
+        <input type="range" id="roundMin" min="1" max="17" value="1" step="1" />
+        <input type="range" id="roundMax" min="1" max="17" value="17" step="1" />
+      </div>
+      <div class="round-range-label" id="roundRangeLabel">Rounds 1–17</div>
+      <label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin-top:8px;">
+        <input type="checkbox" id="includeUnlabeledRounds" checked /> Include unlabeled rounds
+      </label>
 
       <div class="section-title">Question type</div>
       <div class="chip-row" id="qtypeChips"></div>
@@ -88,18 +97,21 @@
       <div class="stat-pill incorrect"><span class="n" id="incorrectCount">0</span><span class="l">Incorrect</span></div>
       <div class="stat-pill skipped"><span class="n" id="skippedCount">0</span><span class="l">Skipped</span></div>
     </div>
-    <div class="qcount" id="progressDisplay">Question 1</div>
     <div style="display:flex; gap:8px; align-items:center;">
       <span class="pause-badge" id="pauseBadge" style="display:none;">⏸ Paused</span>
       <button class="btn small" id="pauseBtn">Pause (P)</button>
-      <button class="btn small ghost" id="endSessionBtn">End session</button>
     </div>
   </div>
 
   <div class="meta-strip" id="metaStrip"></div>
 
   <div class="question-panel">
-    <div class="status-pill" id="statusPill">Revealing…</div>
+    <div class="status-pill" id="statusPill" style="display:none;"></div>
+    <div class="reveal-tags" id="revealTags">
+      <span class="tag" id="revealSubjectTag"></span>
+      <span class="tag" id="revealFormatTag"></span>
+      <span class="tag" id="revealQtypeTag"></span>
+    </div>
     <div class="q-display" id="qDisplay"></div>
     <div class="choices-display" id="choicesDisplay" style="display:none;">
       <div class="choice-box" data-letter="W"><span class="letter">W)</span><span class="choice-text" id="choiceTextW"></span></div>
@@ -122,13 +134,14 @@
 
     <div class="controls-row">
       <button class="btn icon-btn" id="bookmarkBtn" title="Bookmark (B)">☆</button>
-      <button class="btn" id="buzzBtn" style="display:none;">🔔 Buzz in (Space)</button>
-      <button class="btn primary" id="nextBtn">Next / Skip (N)</button>
+      <button class="btn primary" id="buzzBtn" style="display:none;">🔔 Buzz in (Space)</button>
+      <button class="btn" id="nextBtn">Next / Skip (N)</button>
       <button class="btn ghost" id="overrideBtn" style="display:none;">↺ Override grading (Q)</button>
       <span class="shortcut-hint">Space buzz · N next/skip · Q override · B bookmark · P pause</span>
     </div>
   </div>
 
+  <div class="section-title">Previous questions</div>
   <div class="q-log" id="questionLog"></div>
 </div>
 

@@ -14,7 +14,7 @@
   <a class="navlink" href="solo.html">Solo Practice</a>
   <a class="navlink" href="multiplayer.html">Multiplayer</a>
   <div class="spacer"></div>
-  <span class="bookmark-count" id="bmCount"></span>
+  <a class="navlink" href="bookmarks.html">Bookmarked questions</a>
 </nav>
 
 <div class="hero">
@@ -28,7 +28,7 @@
       <p>Browse and search every question by subject, tournament, round, and format. Bookmark the ones you want to revisit.</p>
     </a>
     <a class="mode-card" href="solo.html">
-      <div class="icon">🎧</div>
+      <div class="icon">🎯</div>
       <h3>Solo Practice</h3>
       <p>Questions are read aloud at your chosen speed. Buzz in, type your answer, and get graded with real Science Bowl scoring.</p>
     </a>
@@ -52,8 +52,6 @@
     const n = SBData.meta.totalQuestions.toLocaleString();
     const t = SBData.meta.tournaments.length;
     document.getElementById('tagline').textContent = `${n} questions from ${t} tournaments — search, drill, and compete.`;
-    const bm = SBData.bookmarks.count();
-    document.getElementById('bmCount').textContent = bm ? `★ ${bm} bookmarked` : '';
   }).catch(() => {
     document.getElementById('tagline').textContent = 'Could not load the question bank. Try refreshing.';
   });
